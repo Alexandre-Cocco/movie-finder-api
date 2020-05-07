@@ -11,10 +11,7 @@ const MovieModel = require('./models/Movie')
 
 const hostname = 'localhost'
 const port = 2000
-
-
 const app = express()
-
 const Router = express.Router()
 const secret = 'RANDOM_TOKEN_SECRET'
 
@@ -28,20 +25,12 @@ app.use(session({
 }))
 app.use(cors())
 
-const options = {
-    server: { socketOptions: { keepAlive: 300000, connectTimeoutMS: 30000 } },
-    replset: { socketOptions: { keepAlive: 300000, connectTimeoutMS: 30000 } }
-}
-
-
 mongoose.connect('mongodb://localhost/test', { useNewUrlParser: true })
 var db = mongoose.connection;
 db.on('error', console.error.bind(console, 'connection error:'));
-db.once('open', function () {
-    console.log("we're connected!")
+db.once('open', () => {
+    console.log("connection ok!")
 });
-
-
 
 Router.route('/login')
     .post((req, res, next) => {
@@ -77,50 +66,6 @@ Router.route('/login')
             })
     })
 
-Router.route('/add')
-    .post((req, res, next) => {
-        const { email, password, accessRight } = req.body
-        const newUser = new UserModel()
-        newUser.email = email
-        newUser.password = password
-        newUser.accessRight = accessRight
-        newUser.token = jwt.sign(
-            { email: email },
-            secret,
-            { expiresIn: '24h' })
-
-        newUser.save(function (err) {
-            if (err) {
-                res.json(err)
-            }
-            res.send({ message: 'user added' })
-        })
-    })
-
-Router.route('/delete')
-    .delete((req, res, next) => {
-        UserModel.remove({}, function (err) {
-            if (err) {
-                res.json(err)
-            } else {
-                res.end('success')
-            }
-        }
-        )
-    })
-
-
-
-Router.route('/all')
-    .all((req, res, next) => {
-        UserModel.find(function (err, users) {
-            if (err) {
-                res.json(err)
-            }
-            res.json(users)
-        })
-    })
-
 Router.route('/movie')
     .get((req, res, next) => {
         jwt.verify(req.query.token, secret, function (err, decoded) {
@@ -152,35 +97,9 @@ Router.route('/movie')
                 res.json({ maxResults: maxResults, movies: movies })
             })
     })
-    .post((req, res, next) => {
-        const { title, picture, releaseDate, token } = req.body
-        const newMovie = new MovieModel()
-        newMovie.title = title
-        newMovie.picture = picture
-        newMovie.releaseDate = releaseDate
-
-        newMovie.save(function (err) {
-            if (err) {
-                res.json(err)
-            }
-            res.send({ message: 'movie added' })
-        })
-    })
-
-Router.route('/allMovies')
-    .all((req, res, next) => {
-        MovieModel.find(function (err, movies) {
-            if (err) {
-                res.json(err)
-            }
-            res.json(movies)
-        })
-    })
-
 
 app.use(Router)
 
 app.listen(port, hostname, () => {
     console.log("server : http://" + hostname + ":" + port)
 })
-
